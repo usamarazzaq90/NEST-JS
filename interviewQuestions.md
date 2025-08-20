@@ -1,102 +1,160 @@
-✅ NestJS Interview Q&A (Basic → Advanced)
-🔹 Basic (1–10)
+# ✅ NestJS Interview Q&A (Basic → Advanced)
 
-1) What is NestJS and why use it over Express?
-Answer: NestJS is a TypeScript-first server framework on Node.js. It adds a clear structure (modules, controllers, providers), dependency injection, decorators, and built-in testing. Compared to Express, Nest helps large teams keep code organized and testable.
+---
 
-2) What are Modules, Controllers, and Providers?
-Answer:
+## 🔹 Basic (1–10)
 
-Module groups related pieces (controllers/providers).
+### 1) What is NestJS and why use it over Express?
 
-Controller handles routes and HTTP I/O.
+**Answer:**  
+NestJS is a TypeScript-first server framework on Node.js. It adds a clear structure (modules, controllers, providers), dependency injection, decorators, and built-in testing. Compared to Express, NestJS enforces architecture, enables scalable code, and offers out-of-the-box integration for testing, validation, and more.
 
-Provider/Service holds business logic and can be injected.
+---
 
+### 2) What are Modules, Controllers, and Providers?
+
+**Answer:**
+
+- **Module:** Groups related pieces (controllers/providers).
+- **Controller:** Handles routes and HTTP I/O.
+- **Provider/Service:** Holds business logic and can be injected.
+
+```typescript
 @Module({ controllers: [UserController], providers: [UserService] })
 export class UserModule {}
+```
 
+---
 
-3) How does Dependency Injection work in NestJS?
-Answer: Providers are registered in a module and injected via the constructor using Nest’s IoC container.
+### 3) How does Dependency Injection work in NestJS?
 
+**Answer:**  
+Providers are registered in a module and injected via the constructor using Nest’s IoC container.
+
+```typescript
 @Injectable()
 export class UserService {}
+
 @Controller()
 export class UserController {
   constructor(private readonly users: UserService) {}
 }
+```
 
+---
 
-4) How do you create a REST endpoint?
-Answer: Define a controller and map route handlers with decorators.
+### 4) How do you create a REST endpoint?
 
+**Answer:**  
+Define a controller and map route handlers with decorators.
+
+```typescript
 @Controller('users')
 export class UserController {
   constructor(private readonly svc: UserService) {}
-  @Get() findAll() { return this.svc.findAll(); }
-  @Post() create(@Body() dto: CreateUserDto) { return this.svc.create(dto); }
+
+  @Get()
+  findAll() { return this.svc.findAll(); }
+
+  @Post()
+  create(@Body() dto: CreateUserDto) { return this.svc.create(dto); }
 }
+```
 
+---
 
-5) What are DTOs and why use them?
-Answer: DTOs define the data shape. Pair with class-validator to validate inputs.
+### 5) What are DTOs and why use them?
 
+**Answer:**  
+DTOs define the data shape. Pair with `class-validator` to validate inputs.
+
+```typescript
 export class CreateUserDto {
   @IsString() name: string;
   @IsEmail() email: string;
 }
+```
 
+---
 
-6) What are Pipes? How do you enable global validation?
-Answer: Pipes transform/validate input before reaching handlers.
+### 6) What are Pipes? How do you enable global validation?
 
+**Answer:**  
+Pipes transform/validate input before reaching handlers.
+
+```typescript
 // main.ts
 app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
+```
 
+---
 
-7) What’s the difference between Middleware, Guards, and Interceptors?
-Answer:
+### 7) What’s the difference between Middleware, Guards, and Interceptors?
 
-Middleware: runs before the route (logging, parsing).
+**Answer:**
 
-Guards: allow/deny execution (auth/roles).
+- **Middleware:** Runs before the route (logging, parsing).
+- **Guards:** Allow/deny execution (auth/roles).
+- **Interceptors:** Wrap execution (logging, mapping responses, caching).
 
-Interceptors: wrap execution (logging, mapping responses, caching).
+---
 
-8) How do you access environment variables?
-Answer: Use @nestjs/config.
+### 8) How do you access environment variables?
 
+**Answer:**  
+Use `@nestjs/config`.
+
+```typescript
 @Module({ imports: [ConfigModule.forRoot({ isGlobal: true })] })
 export class AppModule {}
-constructor(private cfg: ConfigService) { const host = this.cfg.get('DB_HOST'); }
 
+constructor(private cfg: ConfigService) {
+  const host = this.cfg.get('DB_HOST');
+}
+```
 
-9) How do you create a custom parameter decorator?
-Answer:
+---
 
+### 9) How do you create a custom parameter decorator?
+
+**Answer:**
+
+```typescript
 export const CurrentUser = createParamDecorator((_, ctx) => {
   const req = ctx.switchToHttp().getRequest();
   return req.user;
 });
-@Get('me') me(@CurrentUser() user: any) { return user; }
 
+@Get('me')
+me(@CurrentUser() user: any) { return user; }
+```
 
-10) How do you add request logging?
-Answer: Use middleware or an interceptor.
+---
 
+### 10) How do you add request logging?
+
+**Answer:**  
+Use middleware or an interceptor.
+
+```typescript
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
   use(req: Request, _res: Response, next: Function) {
-    console.log(req.method, req.url); next();
+    console.log(req.method, req.url);
+    next();
   }
 }
+```
 
-🔸 Intermediate (11–20)
+---
 
-11) How do Guards work? Show a simple AuthGuard.
-Answer:
+## 🔸 Intermediate (11–20)
 
+### 11) How do Guards work? Show a simple AuthGuard.
+
+**Answer:**
+
+```typescript
 @Injectable()
 export class AuthGuard implements CanActivate {
   canActivate(ctx: ExecutionContext) {
@@ -104,12 +162,20 @@ export class AuthGuard implements CanActivate {
     return Boolean(req.user); // e.g., set by middleware/jwt strategy
   }
 }
-@UseGuards(AuthGuard) @Get('profile') getProfile() {}
 
+@UseGuards(AuthGuard)
+@Get('profile')
+getProfile() {}
+```
 
-12) How do Interceptors help with response mapping or timing logs?
-Answer: Interceptors run before and after the route handler.
+---
 
+### 12) How do Interceptors help with response mapping or timing logs?
+
+**Answer:**  
+Interceptors run before and after the route handler.
+
+```typescript
 @Injectable()
 export class TimingInterceptor implements NestInterceptor {
   intercept(_ctx: ExecutionContext, next: CallHandler) {
@@ -117,11 +183,16 @@ export class TimingInterceptor implements NestInterceptor {
     return next.handle().pipe(tap(() => console.log('ms:', Date.now() - t0)));
   }
 }
+```
 
+---
 
-13) How do Exception Filters work?
-Answer: They centralize error handling.
+### 13) How do Exception Filters work?
 
+**Answer:**  
+They centralize error handling.
+
+```typescript
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
   catch(ex: HttpException, host: ArgumentsHost) {
@@ -129,59 +200,99 @@ export class HttpExceptionFilter implements ExceptionFilter {
     res.status(ex.getStatus()).json({ message: ex.message });
   }
 }
-
+```
 
 Apply globally or per-controller.
 
-14) How do you validate and transform params (e.g., id to number)?
-Answer: Use built-in pipes like ParseIntPipe.
+---
 
+### 14) How do you validate and transform params (e.g., id to number)?
+
+**Answer:**  
+Use built-in pipes like `ParseIntPipe`.
+
+```typescript
 @Get(':id')
-findOne(@Param('id', ParseIntPipe) id: number) { return this.svc.findOne(id); }
+findOne(@Param('id', ParseIntPipe) id: number) {
+  return this.svc.findOne(id);
+}
+```
 
+---
 
-15) How do you organize a large project?
-Answer: Feature modules, shared module for common providers, core module for app-wide singletons, consistent foldering (module/controller/service/dto). Avoid dumping everything in AppModule.
+### 15) How do you organize a large project?
 
-16) How do you implement pagination, filtering, and sorting?
-Answer: Accept query DTO, validate, and pass to service.
+**Answer:**  
+Feature modules, shared module for common providers, core module for app-wide singletons, consistent foldering (module/controller/service/dto). Avoid dumping everything in AppModule.
 
+---
+
+### 16) How do you implement pagination, filtering, and sorting?
+
+**Answer:**  
+Accept query DTO, validate, and pass to service.
+
+```typescript
 export class FindUsersQuery {
   @IsInt() @Type(() => Number) @Min(1) page = 1;
   @IsInt() @Type(() => Number) @Min(1) limit = 20;
 }
-@Get() list(@Query() q: FindUsersQuery) { return this.svc.list(q); }
 
+@Get()
+list(@Query() q: FindUsersQuery) { return this.svc.list(q); }
+```
 
-17) How do you use Caching?
-Answer: Use @nestjs/cache-manager or a cache interceptor.
+---
 
+### 17) How do you use Caching?
+
+**Answer:**  
+Use `@nestjs/cache-manager` or a cache interceptor.
+
+```typescript
 @Module({ imports: [CacheModule.register({ isGlobal: true, ttl: 10 })] })
 @UseInterceptors(CacheInterceptor)
-@Get() list() { return this.svc.getExpensiveData(); }
+@Get()
+list() { return this.svc.getExpensiveData(); }
+```
 
+---
 
-18) How do you handle file uploads?
-Answer: Use @nestjs/platform-express (Multer).
+### 18) How do you handle file uploads?
 
+**Answer:**  
+Use `@nestjs/platform-express` (Multer).
+
+```typescript
 @Post('avatar')
 @UseInterceptors(FileInterceptor('file'))
-upload(@UploadedFile() file: Express.Multer.File) { return file.filename; }
+upload(@UploadedFile() file: Express.Multer.File) {
+  return file.filename;
+}
+```
 
+---
 
-19) How do you document APIs with Swagger?
-Answer: @nestjs/swagger.
+### 19) How do you document APIs with Swagger?
 
+**Answer:**  
+Use `@nestjs/swagger`.
+
+```typescript
 const config = new DocumentBuilder().setTitle('API').setVersion('1.0').build();
 const doc = SwaggerModule.createDocument(app, config);
 SwaggerModule.setup('docs', app, doc);
+```
 
+Use decorators like `@ApiTags`, `@ApiProperty`.
 
-Use decorators like @ApiTags, @ApiProperty.
+---
 
-20) How do you write unit tests for a service/controller?
-Answer:
+### 20) How do you write unit tests for a service/controller?
 
+**Answer:**
+
+```typescript
 describe('UserService', () => {
   let svc: UserService;
   beforeEach(async () => {
@@ -190,69 +301,110 @@ describe('UserService', () => {
     }).compile();
     svc = mod.get(UserService);
   });
-  it('findAll', async () => { expect(await svc.findAll()).toHaveLength(2); });
+
+  it('findAll', async () => {
+    expect(await svc.findAll()).toHaveLength(2);
+  });
 });
+```
 
-🔺 Advanced (21–30)
+---
 
-21) Explain provider scopes: Default, Request-scoped, Transient.
-Answer:
+## 🔺 Advanced (21–30)
 
-Default (Singleton): one instance per app/module context.
+### 21) Explain provider scopes: Default, Request-scoped, Transient.
 
-Request-scoped: new instance per request (heavier).
+**Answer:**
 
-Transient: new instance per injection.
+- **Default (Singleton):** One instance per app/module context.
+- **Request-scoped:** New instance per request (heavier).
+- **Transient:** New instance per injection.
+
 Use request scope when state depends on request (e.g., per-request user context).
 
-22) How do you resolve circular dependencies?
-Answer: Use forwardRef.
+---
 
-@Module({ providers: [AService, { provide: BService, useClass: forwardRef(() => BService) }] })
+### 22) How do you resolve circular dependencies?
+
+**Answer:**  
+Use `forwardRef`.
+
+```typescript
+@Module({
+  providers: [AService, { provide: BService, useClass: forwardRef(() => BService) }]
+})
 export class AModule {}
-@Injectable() export class AService { constructor(@Inject(forwardRef(() => BService)) private b: BService) {} }
 
+@Injectable()
+export class AService {
+  constructor(@Inject(forwardRef(() => BService)) private b: BService) {}
+}
+```
 
 Better: re-think design; extract shared parts to a new module.
 
-23) What are Dynamic Modules and why use them?
-Answer: They return a module definition at runtime (e.g., configure SDKs).
+---
 
+### 23) What are Dynamic Modules and why use them?
+
+**Answer:**  
+They return a module definition at runtime (e.g., configure SDKs).
+
+```typescript
 @Module({})
 export class MailModule {
   static register(opts: MailOptions): DynamicModule {
-    return { module: MailModule, providers: [{ provide: MAIL_OPTS, useValue: opts }], exports: [MAIL_OPTS] };
+    return {
+      module: MailModule,
+      providers: [{ provide: MAIL_OPTS, useValue: opts }],
+      exports: [MAIL_OPTS]
+    };
   }
 }
+```
 
+---
 
-24) How do you build a Global Module or Global Pipe/Guard?
-Answer:
+### 24) How do you build a Global Module or Global Pipe/Guard?
 
-Global module: @Global() + import once.
+**Answer:**
 
-Global pipe/guard: configure in main.ts.
+- Global module: `@Global()` + import once.
+- Global pipe/guard: configure in `main.ts`.
 
-@Global() @Module({ providers: [PrismaService], exports: [PrismaService] })
+```typescript
+@Global()
+@Module({ providers: [PrismaService], exports: [PrismaService] })
 export class DatabaseModule {}
+
 app.useGlobalGuards(new RolesGuard(reflector));
+```
 
+---
 
-25) How do you handle transactions (TypeORM or Prisma)?
-Answer (Prisma example):
+### 25) How do you handle transactions (TypeORM or Prisma)?
 
+**Answer (Prisma example):**
+
+```typescript
 await this.prisma.$transaction(async (tx) => {
   await tx.user.create({ data: a });
   await tx.order.create({ data: b });
 });
-
+```
 
 Keep business logic in services; keep transactions small.
 
-26) How do you implement Role-based Access Control (RBAC)?
-Answer: Use metadata + guard.
+---
 
+### 26) How do you implement Role-based Access Control (RBAC)?
+
+**Answer:**  
+Use metadata + guard.
+
+```typescript
 export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
+
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private refl: Reflector) {}
@@ -262,109 +414,127 @@ export class RolesGuard implements CanActivate {
     return roles.length ? roles.includes(user?.role) : true;
   }
 }
+
 @UseGuards(AuthGuard, RolesGuard)
-@Roles('admin') @Delete(':id') remove() {}
+@Roles('admin')
+@Delete(':id')
+remove() {}
+```
 
+---
 
-27) How do you integrate queues or background jobs (Bull/BullMQ)?
-Answer: Use @nestjs/bull.
+### 27) How do you integrate queues or background jobs (Bull/BullMQ)?
 
-@Module({ imports: [BullModule.forRoot({}), BullModule.registerQueue({ name: 'emails' })] })
+**Answer:**  
+Use `@nestjs/bull`.
+
+```typescript
+@Module({
+  imports: [BullModule.forRoot({}), BullModule.registerQueue({ name: 'emails' })]
+})
 export class AppModule {}
-@Injectable() export class EmailProducer {
+
+@Injectable()
+export class EmailProducer {
   constructor(@InjectQueue('emails') private q: Queue) {}
   async enqueue(payload: any) { await this.q.add('send', payload); }
 }
+
 @Processor('emails')
 export class EmailConsumer {
-  @Process('send') async handle(job: Job) { /* send email */ }
+  @Process('send')
+  async handle(job: Job) {
+    // send email
+  }
 }
+```
 
+---
 
-28) How do you build Microservices with NestJS?
-Answer: Use @nestjs/microservices and pick a transport (TCP, Redis, NATS, Kafka, RMQ).
+### 28) How do you build Microservices with NestJS?
 
+**Answer:**  
+Use `@nestjs/microservices` and pick a transport (TCP, Redis, NATS, Kafka, RMQ).
+
+```typescript
 // microservice bootstrap
 app.connectMicroservice<MicroserviceOptions>({ transport: Transport.TCP });
 await app.startAllMicroservices();
+```
 
+Use `ClientProxy` for request/response messaging.
 
-Use ClientProxy for request/response messaging.
+---
 
-29) How do you implement WebSockets or real-time features?
-Answer: Use @WebSocketGateway() and @SubscribeMessage().
+### 29) How do you implement WebSockets or real-time features?
 
+**Answer:**  
+Use `@WebSocketGateway()` and `@SubscribeMessage()`.
+
+```typescript
 @WebSocketGateway()
 export class ChatGateway {
   @WebSocketServer() server: Server;
-  @SubscribeMessage('message') handleMessage(@MessageBody() msg: string) { this.server.emit('message', msg); }
+
+  @SubscribeMessage('message')
+  handleMessage(@MessageBody() msg: string) {
+    this.server.emit('message', msg);
+  }
 }
+```
 
+---
 
-30) How do you ensure production readiness (perf, resilience, DX)?
-Answer:
+### 30) How do you ensure production readiness (perf, resilience, DX)?
 
-Validation & DTOs everywhere.
+**Answer:**
 
-Global exception filter & consistent error shape.
+- Validation & DTOs everywhere.
+- Global exception filter & consistent error shape.
+- Config per env, never hardcode secrets.
+- Caching, HTTP timeouts, retries where needed.
+- Graceful shutdown: enable `app.enableShutdownHooks()`.
+- Health checks with Terminus, metrics (Prometheus/OpenTelemetry).
+- E2E tests, linting, and CI.
+- API versioning and rate limiting.
 
-Config per env, never hardcode secrets.
-
-Caching, HTTP timeouts, retries where needed.
-
-Graceful shutdown: enable app.enableShutdownHooks().
-
-Health checks with Terminus, metrics (Prometheus/OpenTelemetry).
-
-E2E tests, linting, and CI.
-
-API versioning and rate limiting.
-
+```typescript
 app.enableVersioning({ type: VersioningType.URI });
 app.enableShutdownHooks();
+```
 
-🛠️ Practical Scenarios (Bonus)
+---
 
-A) Secure an admin-only DELETE endpoint
+## 🛠️ Practical Scenarios (Bonus)
 
-Use JWT strategy → set req.user.
+**A) Secure an admin-only DELETE endpoint**
 
-Guard checks role → allow only admin.
+- Use JWT strategy → set req.user.
+- Guard checks role → allow only admin.
+- Add audit log via interceptor.
 
-Add audit log via interceptor.
+**B) Global request ID + structured logs**
 
-B) Global request ID + structured logs
+- Middleware to attach req.id (uuid).
+- Interceptor logs id, route, timing.
+- Pipe/Filter include id in error response.
 
-Middleware to attach req.id (uuid).
+**C) Multi-tenant header-based DB**
 
-Interceptor logs id, route, timing.
+- Middleware reads `x-tenant-id`.
+- Request-scoped provider selects proper DB client.
+- Ensure connection pooling + caching per tenant.
 
-Pipe/Filter include id in error response.
+---
 
-C) Multi-tenant header-based DB
+## 🧠 Quick Revision Bullets
 
-Middleware reads x-tenant-id.
-
-Request-scoped provider selects proper DB client.
-
-Ensure connection pooling + caching per tenant.
-
-🧠 Quick Revision Bullets
-
-Modules/Controllers/Providers = structure.
-
-DI = testable, decoupled services.
-
-DTO + ValidationPipe = safe inputs.
-
-Middleware vs Guard vs Interceptor = timing and purpose.
-
-Exception Filters = centralized errors.
-
-Config/ENV = no hardcoded secrets.
-
-Caching/Queues = performance & reliability.
-
-Microservices/WebSockets = scalability & realtime.
-
-Testing = unit + e2e with @nestjs/testing.
+- **Modules/Controllers/Providers = structure.**
+- **DI = testable, decoupled services.**
+- **DTO + ValidationPipe = safe inputs.**
+- **Middleware vs Guard vs Interceptor = timing and purpose.**
+- **Exception Filters = centralized errors.**
+- **Config/ENV = no hardcoded secrets.**
+- **Caching/Queues = performance & reliability.**
+- **Microservices/WebSockets = scalability & realtime.**
+- **Testing = unit + e2e with @nestjs/testing.**
